@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head> </head>
+  <body style="margin: 0; height: 100vh; overflow: hidden">
+    <canvas id="canvas" style="width: 100%; height: 100%"></canvas>
+    <script type="module">
+      import * as exports from "./build/release.js";
+      const canvas = document.getElementById("canvas");
+      canvas.style.imageRendering = "pixelated";
+      const context = canvas.getContext("2d");
+      let gameSettings = {
+        moveSpeed: 1 / 20,
+        upscaleFactor: 4,
+        facingRightTileId: 211,
+        facingLeftTileId: 210,
+      };
+
+      let debugSwitchTimes = 0;
+
+      function alloc_array(width, height, layers = 1) {
+        const ptr = exports.__pin(exports.__new(width * height * layers * 4, exports.Int32Array_ID));
+        const endPtr = ptr + width * height * layers * 4 + 1;
+        const array = new Uint8ClampedArray(exports.memory.buffer).subarray(ptr, endPtr);
+        return { ptr, width, height, array, endPtr, layers };
+      }
+
+      const loadImageBytes = () => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.height = img.height;
+            canvas.width = img.width;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            const bytes = ctx.getImageData(0, 0, img.width, img.height).data;
+            resolve({ bytes, img });
+          };
+          img.src = "export/tiled-tileset-map.png";
+        });
+      };
+
+      const loadMap = async () => {
+        const response = await fetch("export/converted-map-layers.json");
+        const layers = await response.json();
+        let numTiles = 0;
+        for (const l of layers) {
+          for (const t of l.tiles) {
+            numTiles += 1;
+          }
+        }
+        const arrX = new Uint32Array(numTiles);
+        const arrY = new Uint32Array(numTiles);
+        const arrTileId = new Uint32Array(numTiles);
+        const arrFlags = new Uint32Array(numTiles);
+        let tileIdx = 0;
+        for (const l of layers) {
+          for (const t of l.tiles) {
+            arrX[tileIdx] = t.x;
+            arrY[tileIdx] = t.y;
+            arrTileId[tileIdx] = t.tileId;
+            let flags = 0;
+            if (t.walkable === false) {
+              flags |= 1;
+            }
+            if (t.instance_name !== undefined) {
+              flags |= 2;
+            }
+            arrFlags[tileIdx] = flags;
+            tileIdx += 1;
+          }
+        }
+        return {
+          numTiles,
+          arrX,
+          arrY,
+          arrTileId,
+          arrFlags,
+        };
+      };
+
+      let width, height, image;
+      // Inform the module about the viewport's size, incl. on resize
+      function onresize() {
+        width = (canvas.offsetWidth / gameSettings.upscaleFactor) | 0;
+        height = (canvas.offsetHeight / gameSettings.upscaleFactor) | 0;
+        canvas.width = width;
+        canvas.height = height;
+        if (image) {
+          context.putImageData(image, 0, 0);
+        }
+        image = context.createImageData(width, height);
+        exports.resizeMemory(width, height, 0);
+      }
+
+      let keys = [0, 0, 0, 0];
+      document.body.addEventListener("keydown", (event) => {
+        // console.log("keydown", event.key);
+        if (event.key.startsWith("Arrow")) {
+          switch (event.key) {
+            case "ArrowLeft":
+              keys[0] = 1;
+              break;
+            case "ArrowRight":
+              keys[1] = 1;
+              break;
+            case "ArrowUp":
+              keys[2] = 1;
+              break;
+            case "ArrowDown":
+              keys[3] = 1;
+              break;
+          }
+          event.stopPropagation();
+          event.preventDefault();
+        } else if (event.key === "d") {
+          debugSwitchTimes += 1;
+          switch (debugSwitchTimes % 2) {
+            case 0:
+              initialize_game_as_baby();
+              break;
+            case 1:
+              initialize_game_as_student();
+              break;
+          }
+        }
+      });
+      document.body.addEventListener("keyup", (event) => {
+        if (event.key.startsWith("Arrow")) {
+          switch (event.key) {
+            case "ArrowLeft":
+              keys[0] = 0;
+              break;
+            case "ArrowRight":
+              keys[1] = 0;
+              break;
+            case "ArrowUp":
+              keys[2] = 0;
+              break;
+            case "ArrowDown":
+              keys[3] = 0;
+              break;
+          }
+          event.stopPropagation();
+          event.preventDefault();
+        }
+      });
+      const GAME_STAGES = {
+        baby: {
+          startPosition: { x: 105, y: 140 - 50 },
+          gameSettings: {
+            moveSpeed: 1 / 20,
+            upscaleFactor: 4,
+            facingRightTileId: 211,
+            facingLeftTileId: 210,
+          },
+        },
+        student: {
+          startPosition: { x: 3000, y: 145 - 50 },
+          gameSettings: {
+            moveSpeed: 1 / 5,
+            upscaleFactor: 2,
+            facingRightTileId: 213,
+            facingLeftTileId: 212,
+          },
+        },
+      };
+      let updateFlag = (tileIdx, updater) => {};
+      let playerX = 0;
+      let playerY = 0;
+
+      function initialize_game_as_baby() {
+        playerX = GAME_STAGES.baby.startPosition.x;
+        playerY = GAME_STAGES.baby.startPosition.y;
+        gameSettings = GAME_STAGES.baby.gameSettings;
+        onresize();
+      }
+      function initialize_game_as_student() {
+        playerX = GAME_STAGES.student.startPosition.x;
+        playerY = GAME_STAGES.student.startPosition.y;
+        gameSettings = GAME_STAGES.student.gameSettings;
+        onresize();
+      }
+      let lastTimestamp = performance.now();
+      let player_facing_right = false;
+      function update(timeStamp) {
+        let dts = timeStamp - lastTimestamp;
+        lastTimestamp = timeStamp;
+        const dx = keys[1] - keys[0];
+        const dy = keys[3] - keys[2];
+        if (dx < 0) {
+          player_facing_right = false;
+        } else if (dx > 0) {
+          player_facing_right = true;
+        }
+        if (dx !== 0 || dy !== 0) {
+          const newPlayerX = playerX + dx * dts * gameSettings.moveSpeed;
+          const newPlayerY = playerY + dy * dts * gameSettings.moveSpeed;
+          const moveResult = exports.moveResult(newPlayerX, newPlayerY);
+          if (moveResult !== -2) {
+            playerX = newPlayerX;
+            playerY = newPlayerY;
+          }
+          if (moveResult >= 0) {
+            console.log("interact with tileIdx", moveResult);
+            updateFlag(moveResult, (oldValue) => oldValue | 4);
+          }
+        }
+        // console.log({ dts, playerx, playery });
+        exports.update(timeStamp, playerX | 0, playerY | 0, player_facing_right ? gameSettings.facingRightTileId : gameSettings.facingLeftTileId);
+        new Uint8ClampedArray(image.data.buffer).set(new Uint8ClampedArray(exports.memory.buffer, exports.screenOffset.value, width * height * 4));
+        context.putImageData(image, 0, 0);
+        requestAnimationFrame(update);
+      }
+
+      async function run_game() {
+        console.log("start", { screenOffset: exports.screenOffset >>> 0, mapOffset: exports.mapOffset >>> 0, tilemapOffset: exports.tileMapoffset >>> 0 });
+
+        const screen = alloc_array(window.screen.width, window.screen.height);
+        console.log("screen", screen);
+        exports.setScreenSize(screen.ptr, screen.width, screen.height);
+
+        const { bytes, img } = await loadImageBytes();
+        console.log("bytes", bytes.length, "size", img.width, img.height);
+
+        const tilemap = alloc_array(img.width, img.height);
+        console.log("tilemap", tilemap);
+        exports.setTilemapSize(tilemap.ptr, tilemap.width, tilemap.height);
+        tilemap.array.set(bytes);
+
+        const mapData = await loadMap();
+        const mapX = alloc_array(1, 1, mapData.numTiles);
+        const mapY = alloc_array(1, 1, mapData.numTiles);
+        const mapTileId = alloc_array(1, 1, mapData.numTiles);
+        const mapFlags = alloc_array(1, 1, mapData.numTiles);
+        updateFlag = (tileIdx, updater) => {
+          mapData.arrFlags[tileIdx] = updater(mapData.arrFlags[tileIdx]);
+          mapFlags.array.set(new Uint8Array(mapData.arrFlags.buffer));
+        };
+        console.log({ mapX, mapY, mapTileId, mapFlags });
+        exports.setMapSize(mapData.numTiles, mapX.ptr, mapY.ptr, mapTileId.ptr, mapFlags.ptr);
+        mapX.array.set(new Uint8Array(mapData.arrX.buffer));
+        mapY.array.set(new Uint8Array(mapData.arrY.buffer));
+        mapTileId.array.set(new Uint8Array(mapData.arrTileId.buffer));
+        mapFlags.array.set(new Uint8Array(mapData.arrFlags.buffer));
+
+        initialize_game_as_baby();
+        new ResizeObserver(onresize).observe(canvas);
+
+        requestAnimationFrame(update);
+      }
+      run_game();
+    </script>
+  </body>
+</html>
