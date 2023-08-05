@@ -5,17 +5,144 @@
     <canvas id="canvas" style="width: 100%; height: 100%"></canvas>
     <script type="module">
       import * as exports from "./build/release.js";
+      /** @type {HTMLCanvasElement|null} */
       const canvas = document.getElementById("canvas");
       canvas.style.imageRendering = "pixelated";
       const context = canvas.getContext("2d");
-      let gameSettings = {
-        moveSpeed: 1 / 20,
-        upscaleFactor: 4,
-        facingRightTileId: 211,
-        facingLeftTileId: 210,
+      const PLAYER_OFFSET = 272;
+      const GAME_STAGES = {
+        baby: {
+          startPosition: { x: 105, y: 145 - 50 },
+          startAge: 1,
+          nextAge: 10.5,
+          moveSpeed: 1 / 20,
+          agingSpeed: (1 / 35000) * 10,
+          upscaleFactor: 4,
+          facingRightTileId1: PLAYER_OFFSET + 4,
+          facingRightTileId2: PLAYER_OFFSET + 5,
+          facingLeftTileId1: PLAYER_OFFSET + 0,
+          facingLeftTileId2: PLAYER_OFFSET + 3,
+          font: "16px serif",
+          textGap: 16,
+          achievements: [],
+          init_function: initialize_game_as_baby,
+          isGameOver: false,
+        },
+        student: {
+          startPosition: { x: 260, y: 2540 - 50 },
+          startAge: 10,
+          nextAge: 25.5,
+          moveSpeed: 1 / 5,
+          agingSpeed: (1 / 10000) * 15,
+          upscaleFactor: 2,
+          facingRightTileId1: PLAYER_OFFSET + 6,
+          facingRightTileId2: PLAYER_OFFSET + 7,
+          facingLeftTileId1: PLAYER_OFFSET + 1,
+          facingLeftTileId2: PLAYER_OFFSET + 2,
+          font: "32px serif",
+          textGap: 32,
+          achievements: [],
+          init_function: initialize_game_as_student,
+          isGameOver: false,
+        },
+        adult: {
+          startPosition: { x: 1070, y: 4060 - 50 },
+          startAge: 25,
+          nextAge: 65.5,
+          moveSpeed: 1 / 20,
+          agingSpeed: (1 / 15000) * 40,
+          upscaleFactor: 1,
+          facingRightTileId1: PLAYER_OFFSET + 10,
+          facingRightTileId2: PLAYER_OFFSET + 11,
+          facingLeftTileId1: PLAYER_OFFSET + 8,
+          facingLeftTileId2: PLAYER_OFFSET + 9,
+          font: "64px serif",
+          textGap: 64,
+          achievements: [],
+          init_function: initialize_game_as_adult,
+          isGameOver: false,
+        },
+        grandpa: {
+          startPosition: { x: 500, y: 6000 - 50 },
+          startAge: 65,
+          nextAge: 100.5,
+          moveSpeed: 1 / 40,
+          agingSpeed: (1 / 15000) * 40,
+          upscaleFactor: 1,
+          facingRightTileId1: PLAYER_OFFSET + 10,
+          facingRightTileId2: PLAYER_OFFSET + 11,
+          facingLeftTileId1: PLAYER_OFFSET + 0,
+          facingLeftTileId2: PLAYER_OFFSET + 3,
+          font: "64px serif",
+          textGap: 64,
+          achievements: [],
+          init_function: initialize_game_as_grandpa,
+          isGameOver: false,
+        },
+        game_over: {
+          startPosition: { x: 500, y: 6000 - 50 },
+          startAge: 100,
+          nextAge: Infinity,
+          moveSpeed: 1 / 40,
+          agingSpeed: 0,
+          upscaleFactor: 1,
+          facingRightTileId1: PLAYER_OFFSET + 0,
+          facingRightTileId2: PLAYER_OFFSET + 1,
+          facingLeftTileId1: PLAYER_OFFSET + 2,
+          facingLeftTileId2: PLAYER_OFFSET + 3,
+          font: "32px serif",
+          textGap: 32,
+          achievements: [],
+          init_function: initialize_game_as_game_over,
+          isGameOver: true,
+        },
       };
+      let updateFlag = (tileIdx, updater) => {};
+      let instanceName = [];
+      let playerX = 0;
+      let playerY = 0;
+      let playerAge = 1;
 
-      let debugSwitchTimes = 0;
+      let gameSettings = GAME_STAGES.baby;
+
+      function describeAchievement(shorthand) {
+        switch (shorthand) {
+          case "Milk bottle":
+            return "Had enough to eat";
+          case "Parents' love":
+            return "Were loved by your parents";
+          case "Candy":
+            return "Enjoyed some candy";
+          case "Rocking horse":
+            return "Had fun riding rocking horse";
+          case "Butterfly":
+            return "Chased butterflies";
+          case "Teddy bear":
+            return "Hugged your teddy bear";
+          case "Gaming":
+            return "Had fun gaming";
+          case "Graduated":
+            return "Your graduated with honors";
+          case "Love letter":
+            return "Received a love letter";
+          case "Skateboard":
+            return "Had fun skateboarding";
+          case "Trophy":
+            return "Won a first place trophy";
+          case "Marriage":
+            return "Got married";
+          case "A house":
+            return "Bought a house";
+          case "Love":
+            return "Found love";
+          case "Money":
+            return "Had enough money";
+          case "A child":
+            return "Had a child";
+          default:
+            return `-- ${shorthand} --`;
+        }
+      }
 
       function alloc_array(width, height, layers = 1) {
         const ptr = exports.__pin(exports.__new(width * height * layers * 4, exports.Int32Array_ID));
@@ -53,6 +180,7 @@
         const arrY = new Uint32Array(numTiles);
         const arrTileId = new Uint32Array(numTiles);
         const arrFlags = new Uint32Array(numTiles);
+        const instanceNames = [];
         let tileIdx = 0;
         for (const l of layers) {
           for (const t of l.tiles) {
@@ -68,6 +196,7 @@
             }
             arrFlags[tileIdx] = flags;
             tileIdx += 1;
+            instanceName.push(t.instance_name);
           }
         }
         return {
@@ -76,6 +205,7 @@
           arrY,
           arrTileId,
           arrFlags,
+          instanceName,
         };
       };
 
@@ -114,18 +244,14 @@
           event.stopPropagation();
           event.preventDefault();
         } else if (event.key === "d") {
-          debugSwitchTimes += 1;
-          switch (debugSwitchTimes % 3) {
-            case 0:
-              initialize_game_as_baby();
-              break;
-            case 1:
-              initialize_game_as_student();
-              break;
-            case 2:
-              initialize_game_as_adult();
-              break;
+          playerAge += 10;
+        } else if (event.key === "e") {
+          for (const x of instanceName) {
+            if (x !== undefined) {
+              GAME_STAGES.game_over.achievements.push(x);
+            }
           }
+          playerAge += 100;
         }
       });
       document.body.addEventListener("keyup", (event) => {
@@ -148,68 +274,47 @@
           event.preventDefault();
         }
       });
-      const PLAYER_OFFSET = 272;
-      const GAME_STAGES = {
-        baby: {
-          startPosition: { x: 105, y: 145 - 50 },
-          gameSettings: {
-            moveSpeed: 1 / 20,
-            upscaleFactor: 4,
-            facingRightTileId1: PLAYER_OFFSET + 4,
-            facingRightTileId2: PLAYER_OFFSET + 5,
-            facingLeftTileId1: PLAYER_OFFSET + 0,
-            facingLeftTileId2: PLAYER_OFFSET + 3,
-          },
-        },
-        student: {
-          startPosition: { x: 260, y: 2540 - 50 },
-          gameSettings: {
-            moveSpeed: 1 / 5,
-            upscaleFactor: 2,
-            facingRightTileId1: PLAYER_OFFSET + 6,
-            facingRightTileId2: PLAYER_OFFSET + 7,
-            facingLeftTileId1: PLAYER_OFFSET + 1,
-            facingLeftTileId2: PLAYER_OFFSET + 2,
-          },
-        },
-        adult: {
-          startPosition: { x: 1070, y: 4060 - 50 },
-          gameSettings: {
-            moveSpeed: 1 / 20,
-            upscaleFactor: 1,
-            facingRightTileId1: PLAYER_OFFSET + 10,
-            facingRightTileId2: PLAYER_OFFSET + 11,
-            facingLeftTileId1: PLAYER_OFFSET + 8,
-            facingLeftTileId2: PLAYER_OFFSET + 9,
-          },
-        },
-      };
-      let updateFlag = (tileIdx, updater) => {};
-      let playerX = 0;
-      let playerY = 0;
 
       function initialize_game_as_baby() {
         playerX = GAME_STAGES.baby.startPosition.x;
         playerY = GAME_STAGES.baby.startPosition.y;
-        gameSettings = GAME_STAGES.baby.gameSettings;
+        // playerAge = GAME_STAGES.baby.startAge;
+        gameSettings = GAME_STAGES.baby;
         onresize();
       }
       function initialize_game_as_student() {
         playerX = GAME_STAGES.student.startPosition.x;
         playerY = GAME_STAGES.student.startPosition.y;
-        gameSettings = GAME_STAGES.student.gameSettings;
+        // playerAge = GAME_STAGES.student.startAge;
+        gameSettings = GAME_STAGES.student;
         onresize();
       }
       function initialize_game_as_adult() {
         playerX = GAME_STAGES.adult.startPosition.x;
         playerY = GAME_STAGES.adult.startPosition.y;
-        gameSettings = GAME_STAGES.adult.gameSettings;
+        // playerAge = GAME_STAGES.adult.startAge;
+        gameSettings = GAME_STAGES.adult;
+        onresize();
+      }
+      function initialize_game_as_grandpa() {
+        playerX = GAME_STAGES.grandpa.startPosition.x;
+        playerY = GAME_STAGES.grandpa.startPosition.y;
+        // playerAge = GAME_STAGES.grandpa.startAge;
+        gameSettings = GAME_STAGES.grandpa;
+        onresize();
+      }
+      function initialize_game_as_game_over() {
+        playerX = GAME_STAGES.game_over.startPosition.x;
+        playerY = GAME_STAGES.game_over.startPosition.y;
+        // playerAge = GAME_STAGES.game_over.startAge;
+        gameSettings = GAME_STAGES.game_over;
         onresize();
       }
       let lastTimestamp = performance.now();
       let player_facing_right = false;
       let amountWalked = 0.0;
       let switchWalkTile = false;
+      const itemsPickedUp = new Set();
       function update(timeStamp) {
         let dts = timeStamp - lastTimestamp;
         lastTimestamp = timeStamp;
@@ -233,9 +338,12 @@
               switchWalkTile = !switchWalkTile;
             }
           }
-          if (moveResult >= 0) {
-            console.log("interact with tileIdx", moveResult);
-            updateFlag(moveResult, (oldValue) => oldValue | 4);
+          if (moveResult >= 0 && !itemsPickedUp.has(moveResult)) {
+            const tileIdx = moveResult;
+            itemsPickedUp.add(tileIdx);
+            gameSettings.achievements.push(instanceName[tileIdx]);
+            console.log("interact with tileIdx", tileIdx, instanceName[tileIdx]);
+            updateFlag(tileIdx, (oldValue) => oldValue | 4);
           }
         }
         // console.log({ dts, playerx, playery });
@@ -248,6 +356,57 @@
         exports.update(timeStamp, playerX | 0, playerY | 0, playerTileId);
         new Uint8ClampedArray(image.data.buffer).set(new Uint8ClampedArray(exports.memory.buffer, exports.screenOffset.value, width * height * 4));
         context.putImageData(image, 0, 0);
+        context.font = gameSettings.font;
+        context.textBaseline = "middle";
+        if (gameSettings.isGameOver) {
+          const allAchievements = [];
+          for (const stage of [GAME_STAGES.baby, GAME_STAGES.student, GAME_STAGES.adult, GAME_STAGES.grandpa, GAME_STAGES.game_over]) {
+            for (const a of stage.achievements) {
+              allAchievements.push(a);
+            }
+          }
+          let numLinesToWrite = allAchievements.length + 1.8;
+          let writeOffset = gameSettings.textGap * 0.5;
+          function writeLine(str) {
+            writeOffset += gameSettings.textGap;
+            context.fillText(str, gameSettings.textGap, writeOffset);
+          }
+          context.fillStyle = "rgba(255,255,255,0.75)";
+          context.fillRect(gameSettings.textGap * 0.3, gameSettings.textGap * 0.3, gameSettings.textGap * 15.5, gameSettings.textGap * (numLinesToWrite + 0.3));
+          context.fillStyle = "rgba(0,0,0,1.0)";
+          writeLine(` = ACHIEVEMENTS: ${allAchievements.length}/??? = `);
+          for (const a of allAchievements) {
+            writeLine(describeAchievement(a));
+          }
+        } else {
+          const numLinesToWrite = 1 + gameSettings.achievements.length;
+          let writeOffset = 0;
+          function writeLine(str) {
+            writeOffset += gameSettings.textGap;
+            context.fillText(str, gameSettings.textGap / 2, writeOffset);
+          }
+          context.fillStyle = "rgba(255,255,255,0.75)";
+          context.fillRect(gameSettings.textGap * 0.3, gameSettings.textGap * 0.3, gameSettings.textGap * 6.5, gameSettings.textGap * (numLinesToWrite + 0.3));
+          context.fillStyle = "rgba(0,0,0,1.0)";
+          playerAge += gameSettings.agingSpeed * dts;
+          writeLine(`Age: ${playerAge | 0}`);
+          for (const a of gameSettings.achievements) {
+            writeLine(a);
+          }
+          // context.fillStyle = "rgba(0,255,0,0.5)";
+          // context.fillStyle = "rgba(0,0,255,0.5)";
+
+          if (playerAge > gameSettings.nextAge) {
+            let init_function;
+            for (const stage of [GAME_STAGES.baby, GAME_STAGES.student, GAME_STAGES.adult, GAME_STAGES.grandpa, GAME_STAGES.game_over]) {
+              if (playerAge >= stage.startAge) {
+                init_function = stage.init_function;
+              }
+            }
+            init_function();
+          }
+        }
+
         requestAnimationFrame(update);
       }
 
@@ -271,6 +430,7 @@
         const mapY = alloc_array(1, 1, mapData.numTiles);
         const mapTileId = alloc_array(1, 1, mapData.numTiles);
         const mapFlags = alloc_array(1, 1, mapData.numTiles);
+        instanceName = mapData.instanceName;
         updateFlag = (tileIdx, updater) => {
           mapData.arrFlags[tileIdx] = updater(mapData.arrFlags[tileIdx]);
           mapFlags.array.set(new Uint8Array(mapData.arrFlags.buffer));

@@ -101,8 +101,7 @@ function place_tile(idx: i32, x: i32, y: i32, alphaBlend: f32): void {
 export function update(tick: f32, playerx: i32, playery: i32, player_image: i32): void {
   for (let y = 0; y < screenHeight; y += 1) {
     for (let x = 0; x < screenWidth; x += 1) {
-      setPixel(x, y, 0);
-      setPixel(x, y, rgbToI32(200, 20, 180));
+      setPixel(x, y, rgbToI32(64, 64, 64));
     }
   }
   if (tilemapWidth === 0 || mapNumTiles === 0) {

@@ -594,7 +594,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"milk bottle"
+                         "value":"Milk bottle"
                         }],
                  "rotation":0,
                  "type":"",
@@ -612,7 +612,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"parents' love"
+                         "value":"Parents' love"
                         }],
                  "rotation":0,
                  "type":"",
@@ -630,7 +630,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"candy"
+                         "value":"Candy"
                         }],
                  "rotation":0,
                  "type":"",
@@ -648,7 +648,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"rocking horse"
+                         "value":"Rocking horse"
                         }],
                  "rotation":0,
                  "type":"",
@@ -666,7 +666,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"butterfly"
+                         "value":"Butterfly"
                         }],
                  "rotation":0,
                  "type":"",
@@ -684,7 +684,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"teddy bear"
+                         "value":"Teddy bear"
                         }],
                  "rotation":0,
                  "type":"",
@@ -702,7 +702,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"gaming"
+                         "value":"Gaming"
                         }],
                  "rotation":0,
                  "type":"",
@@ -720,7 +720,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"graduation"
+                         "value":"Graduated"
                         }],
                  "rotation":0,
                  "type":"",
@@ -738,7 +738,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"love letter"
+                         "value":"Love letter"
                         }],
                  "rotation":0,
                  "type":"",
@@ -756,7 +756,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"skateboard"
+                         "value":"Skateboard"
                         }],
                  "rotation":0,
                  "type":"",
@@ -774,7 +774,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"trophy"
+                         "value":"Trophy"
                         }],
                  "rotation":0,
                  "type":"",
@@ -792,7 +792,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"diamond ring"
+                         "value":"Marriage"
                         }],
                  "rotation":0,
                  "type":"",
@@ -810,7 +810,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"house"
+                         "value":"A house"
                         }],
                  "rotation":0,
                  "type":"",
@@ -828,7 +828,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"love"
+                         "value":"Love"
                         }],
                  "rotation":0,
                  "type":"",
@@ -846,7 +846,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"money"
+                         "value":"Money"
                         }],
                  "rotation":0,
                  "type":"",
@@ -864,7 +864,7 @@
                         {
                          "name":"instance_name",
                          "type":"string",
-                         "value":"child"
+                         "value":"A child"
                         }],
                  "rotation":0,
                  "type":"",
