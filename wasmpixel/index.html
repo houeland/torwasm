@@ -145,14 +145,17 @@
           event.preventDefault();
         }
       });
+      const PLAYER_OFFSET = 210;
       const GAME_STAGES = {
         baby: {
-          startPosition: { x: 105, y: 140 - 50 },
+          startPosition: { x: 105, y: 145 - 50 },
           gameSettings: {
             moveSpeed: 1 / 20,
             upscaleFactor: 4,
-            facingRightTileId: 211,
-            facingLeftTileId: 210,
+            facingRightTileId1: PLAYER_OFFSET + 4,
+            facingRightTileId2: PLAYER_OFFSET + 5,
+            facingLeftTileId1: PLAYER_OFFSET + 2,
+            facingLeftTileId2: PLAYER_OFFSET + 3,
           },
         },
         student: {
@@ -160,8 +163,10 @@
           gameSettings: {
             moveSpeed: 1 / 5,
             upscaleFactor: 2,
-            facingRightTileId: 213,
-            facingLeftTileId: 212,
+            facingRightTileId1: PLAYER_OFFSET + 6,
+            facingRightTileId2: PLAYER_OFFSET + 7,
+            facingLeftTileId1: PLAYER_OFFSET + 0,
+            facingLeftTileId2: PLAYER_OFFSET + 1,
           },
         },
       };
@@ -183,6 +188,8 @@
       }
       let lastTimestamp = performance.now();
       let player_facing_right = false;
+      let amountWalked = 0.0;
+      let switchWalkTile = false;
       function update(timeStamp) {
         let dts = timeStamp - lastTimestamp;
         lastTimestamp = timeStamp;
@@ -198,8 +205,13 @@
           const newPlayerY = playerY + dy * dts * gameSettings.moveSpeed;
           const moveResult = exports.moveResult(newPlayerX, newPlayerY);
           if (moveResult !== -2) {
+            amountWalked += dts;
             playerX = newPlayerX;
             playerY = newPlayerY;
+            if (amountWalked > 250) {
+              amountWalked -= 250;
+              switchWalkTile = !switchWalkTile;
+            }
           }
           if (moveResult >= 0) {
             console.log("interact with tileIdx", moveResult);
@@ -207,7 +219,13 @@
           }
         }
         // console.log({ dts, playerx, playery });
-        exports.update(timeStamp, playerX | 0, playerY | 0, player_facing_right ? gameSettings.facingRightTileId : gameSettings.facingLeftTileId);
+        let playerTileId;
+        if (player_facing_right) {
+          playerTileId = switchWalkTile ? gameSettings.facingRightTileId1 : gameSettings.facingRightTileId2;
+        } else {
+          playerTileId = switchWalkTile ? gameSettings.facingLeftTileId1 : gameSettings.facingLeftTileId2;
+        }
+        exports.update(timeStamp, playerX | 0, playerY | 0, playerTileId);
         new Uint8ClampedArray(image.data.buffer).set(new Uint8ClampedArray(exports.memory.buffer, exports.screenOffset.value, width * height * 4));
         context.putImageData(image, 0, 0);
         requestAnimationFrame(update);
