@@ -69,9 +69,6 @@ function rgbToI32(r: u32, g: u32, b: u32): u32 {
 }
 
 function place_tile(idx: i32, x: i32, y: i32, alphaBlend: f32): void {
-  if (idx === 0) {
-    return;
-  }
   for (let dy = 0; dy < 50; dy += 1) {
     for (let dx = 0; dx < 50; dx += 1) {
       const value = loadTilemapPixel(idx * 50 + dx, dy);

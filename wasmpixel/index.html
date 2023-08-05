@@ -115,12 +115,15 @@
           event.preventDefault();
         } else if (event.key === "d") {
           debugSwitchTimes += 1;
-          switch (debugSwitchTimes % 2) {
+          switch (debugSwitchTimes % 3) {
             case 0:
               initialize_game_as_baby();
               break;
             case 1:
               initialize_game_as_student();
+              break;
+            case 2:
+              initialize_game_as_adult();
               break;
           }
         }
@@ -145,7 +148,7 @@
           event.preventDefault();
         }
       });
-      const PLAYER_OFFSET = 210;
+      const PLAYER_OFFSET = 272;
       const GAME_STAGES = {
         baby: {
           startPosition: { x: 105, y: 145 - 50 },
@@ -154,19 +157,30 @@
             upscaleFactor: 4,
             facingRightTileId1: PLAYER_OFFSET + 4,
             facingRightTileId2: PLAYER_OFFSET + 5,
-            facingLeftTileId1: PLAYER_OFFSET + 2,
+            facingLeftTileId1: PLAYER_OFFSET + 0,
             facingLeftTileId2: PLAYER_OFFSET + 3,
           },
         },
         student: {
-          startPosition: { x: 3000, y: 145 - 50 },
+          startPosition: { x: 260, y: 2540 - 50 },
           gameSettings: {
             moveSpeed: 1 / 5,
             upscaleFactor: 2,
             facingRightTileId1: PLAYER_OFFSET + 6,
             facingRightTileId2: PLAYER_OFFSET + 7,
-            facingLeftTileId1: PLAYER_OFFSET + 0,
-            facingLeftTileId2: PLAYER_OFFSET + 1,
+            facingLeftTileId1: PLAYER_OFFSET + 1,
+            facingLeftTileId2: PLAYER_OFFSET + 2,
+          },
+        },
+        adult: {
+          startPosition: { x: 1070, y: 4060 - 50 },
+          gameSettings: {
+            moveSpeed: 1 / 20,
+            upscaleFactor: 1,
+            facingRightTileId1: PLAYER_OFFSET + 10,
+            facingRightTileId2: PLAYER_OFFSET + 11,
+            facingLeftTileId1: PLAYER_OFFSET + 8,
+            facingLeftTileId2: PLAYER_OFFSET + 9,
           },
         },
       };
@@ -184,6 +198,12 @@
         playerX = GAME_STAGES.student.startPosition.x;
         playerY = GAME_STAGES.student.startPosition.y;
         gameSettings = GAME_STAGES.student.gameSettings;
+        onresize();
+      }
+      function initialize_game_as_adult() {
+        playerX = GAME_STAGES.adult.startPosition.x;
+        playerY = GAME_STAGES.adult.startPosition.y;
+        gameSettings = GAME_STAGES.adult.gameSettings;
         onresize();
       }
       let lastTimestamp = performance.now();
