@@ -15,6 +15,7 @@ export let mapOffsetFlags: usize = 0;
 const FLAG_WALL_BLOCKS_WALKING = 1;
 const FLAG_INTERACTABLE = 2;
 const FLAG_ITEM_COLLECTED = 4;
+const FLAG_INVISIBLE = 8;
 
 function store32(ptr: usize, offset: usize, value: u32): void {
   store<u32>(ptr + offset * sizeof<u32>(), value);
@@ -113,6 +114,7 @@ export function update(tick: f32, playerx: i32, playery: i32, player_image: i32)
     const y = load32(mapOffsetY, tileIdx);
     const tileId = load32(mapOffsetTileId, tileIdx);
     const flags = load32(mapOffsetFlags, tileIdx);
+    if (flags & FLAG_INVISIBLE) continue;
     if (flags & FLAG_ITEM_COLLECTED) {
       place_tile(tileId, screenWidth / 2 - playerx + x - 25, screenHeight / 2 - playery + y - 25, 1.0 / 3.0);
     } else {
@@ -175,6 +177,7 @@ export function moveResult(x: i32, y: i32): i32 {
   }
   for (let tileIdx = 0; tileIdx < mapNumTiles; tileIdx += 1) {
     const flags = load32(mapOffsetFlags, tileIdx);
+    if (flags & FLAG_INVISIBLE) continue;
     if (flags & FLAG_INTERACTABLE) {
       const tileX = load32(mapOffsetX, tileIdx);
       const tileY = load32(mapOffsetY, tileIdx);

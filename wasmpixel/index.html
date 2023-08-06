@@ -8,8 +8,9 @@
       /** @type {HTMLCanvasElement|null} */
       const canvas = document.getElementById("canvas");
       canvas.style.imageRendering = "pixelated";
+      let numRebirths = 0;
       const context = canvas.getContext("2d");
-      const PLAYER_OFFSET = 272;
+      const PLAYER_OFFSET = 338;
       const GAME_STAGES = {
         baby: {
           startPosition: { x: 105, y: 145 - 50 },
@@ -20,20 +21,21 @@
           upscaleFactor: 4,
           facingRightTileId1: PLAYER_OFFSET + 4,
           facingRightTileId2: PLAYER_OFFSET + 5,
-          facingLeftTileId1: PLAYER_OFFSET + 0,
+          facingLeftTileId1: PLAYER_OFFSET - 5,
           facingLeftTileId2: PLAYER_OFFSET + 3,
           font: "16px serif",
           textGap: 16,
           achievements: [],
           init_function: initialize_game_as_baby,
           isGameOver: false,
+          canMove: true,
         },
         student: {
           startPosition: { x: 260, y: 2540 - 50 },
           startAge: 10,
           nextAge: 25.5,
           moveSpeed: 1 / 5,
-          agingSpeed: (1 / 10000) * 15,
+          agingSpeed: (1 / 12000) * 15,
           upscaleFactor: 2,
           facingRightTileId1: PLAYER_OFFSET + 6,
           facingRightTileId2: PLAYER_OFFSET + 7,
@@ -44,6 +46,7 @@
           achievements: [],
           init_function: initialize_game_as_student,
           isGameOver: false,
+          canMove: true,
         },
         adult: {
           startPosition: { x: 1070, y: 4060 - 50 },
@@ -61,26 +64,28 @@
           achievements: [],
           init_function: initialize_game_as_adult,
           isGameOver: false,
+          canMove: true,
         },
         grandpa: {
-          startPosition: { x: 500, y: 6000 - 50 },
+          startPosition: { x: -137, y: 5485 - 50 },
           startAge: 65,
           nextAge: 100.5,
           moveSpeed: 1 / 40,
-          agingSpeed: (1 / 15000) * 40,
+          agingSpeed: (1 / 20000) * 40,
           upscaleFactor: 1,
-          facingRightTileId1: PLAYER_OFFSET + 10,
-          facingRightTileId2: PLAYER_OFFSET + 11,
-          facingLeftTileId1: PLAYER_OFFSET + 0,
-          facingLeftTileId2: PLAYER_OFFSET + 3,
+          facingRightTileId1: PLAYER_OFFSET + 13,
+          facingRightTileId2: PLAYER_OFFSET + 15,
+          facingLeftTileId1: PLAYER_OFFSET + 12,
+          facingLeftTileId2: PLAYER_OFFSET + 14,
           font: "64px serif",
           textGap: 64,
           achievements: [],
           init_function: initialize_game_as_grandpa,
           isGameOver: false,
+          canMove: true,
         },
         game_over: {
-          startPosition: { x: 500, y: 6000 - 50 },
+          startPosition: { x: -80, y: 10080 },
           startAge: 100,
           nextAge: Infinity,
           moveSpeed: 1 / 40,
@@ -90,20 +95,58 @@
           facingRightTileId2: PLAYER_OFFSET + 1,
           facingLeftTileId1: PLAYER_OFFSET + 2,
           facingLeftTileId2: PLAYER_OFFSET + 3,
-          font: "32px serif",
-          textGap: 32,
+          font: "24px serif",
+          textGap: 24,
           achievements: [],
           init_function: initialize_game_as_game_over,
           isGameOver: true,
+          canMove: false,
+        },
+        game_over_done: {
+          startPosition: { x: -80, y: 9080 },
+          startAge: 100,
+          nextAge: Infinity,
+          moveSpeed: 1 / 40,
+          agingSpeed: 0,
+          upscaleFactor: 1,
+          facingRightTileId1: PLAYER_OFFSET + 0,
+          facingRightTileId2: PLAYER_OFFSET + 1,
+          facingLeftTileId1: PLAYER_OFFSET + 2,
+          facingLeftTileId2: PLAYER_OFFSET + 3,
+          font: "24px serif",
+          textGap: 24,
+          achievements: [],
+          init_function: initialize_game_as_game_over_done,
+          isGameOver: true,
+          canMove: false,
+        },
+        start_game: {
+          startPosition: { x: 30, y: 7300 },
+          startAge: 100,
+          nextAge: Infinity,
+          moveSpeed: 1 / 40,
+          agingSpeed: 0,
+          upscaleFactor: 1,
+          facingRightTileId1: PLAYER_OFFSET + 0,
+          facingRightTileId2: PLAYER_OFFSET + 1,
+          facingLeftTileId1: PLAYER_OFFSET + 2,
+          facingLeftTileId2: PLAYER_OFFSET + 3,
+          font: "24px serif",
+          textGap: 24,
+          achievements: [],
+          init_function: initialize_game_as_start_game,
+          isGameOver: false,
+          canMove: false,
         },
       };
       let updateFlag = (tileIdx, updater) => {};
       let instanceName = [];
-      let playerX = 0;
-      let playerY = 0;
-      let playerAge = 1;
+      const nameToTileidx = new Map();
 
-      let gameSettings = GAME_STAGES.baby;
+      let gameSettings = GAME_STAGES.start_game;
+      let playerX = gameSettings.startPosition.x;
+      let playerY = gameSettings.startPosition.y;
+      let playerAge = gameSettings.startPosition.startAge;
 
       function describeAchievement(shorthand) {
         switch (shorthand) {
@@ -114,15 +157,15 @@
           case "Candy":
             return "Enjoyed some candy";
           case "Rocking horse":
-            return "Had fun riding rocking horse";
+            return "Had fun riding a rocking horse";
           case "Butterfly":
-            return "Chased butterflies";
+            return "Had fun chasing butterflies";
           case "Teddy bear":
-            return "Hugged your teddy bear";
+            return "Felt safe with your teddy bear";
           case "Gaming":
-            return "Had fun gaming";
+            return "Had fun playing games";
           case "Graduated":
-            return "Your graduated with honors";
+            return "Graduated with honors";
           case "Love letter":
             return "Received a love letter";
           case "Skateboard":
@@ -139,6 +182,16 @@
             return "Had enough money";
           case "A child":
             return "Had a child";
+          case "Long life": // depends on "Love" + "Marriage"
+            return "Lived a long and happy life";
+          case "Family": // depends on "Parents' love" + "A child"
+            return "Had a happy family";
+          case "Friends":
+            return "Found lifelong friends";
+          case "Music":
+            return "Enjoyed music";
+          case "Gardening":
+            return "Enjoyed gardening";
           default:
             return `-- ${shorthand} --`;
         }
@@ -193,6 +246,12 @@
             }
             if (t.instance_name !== undefined) {
               flags |= 2;
+              nameToTileidx.set(t.instance_name, tileIdx);
+            }
+            // case "Long life": // depends on "Love" + "Marriage"
+            // case "Family": // depends on "Parents' love" + "A child"
+            if (t.instance_name === "Long life" || t.instance_name === "Family") {
+              flags |= 8;
             }
             arrFlags[tileIdx] = flags;
             tileIdx += 1;
@@ -224,6 +283,7 @@
       }
 
       let keys = [0, 0, 0, 0];
+      let gameOverWant = undefined;
       document.body.addEventListener("keydown", (event) => {
         // console.log("keydown", event.key);
         if (event.key.startsWith("Arrow")) {
@@ -244,14 +304,28 @@
           event.stopPropagation();
           event.preventDefault();
         } else if (event.key === "d") {
-          playerAge += 10;
+          // playerAge += 10;
         } else if (event.key === "e") {
-          for (const x of instanceName) {
-            if (x !== undefined) {
-              GAME_STAGES.game_over.achievements.push(x);
-            }
+          // for (const x of instanceName) {
+          //   if (x !== undefined) {
+          //     GAME_STAGES.game_over.achievements.push(x);
+          //   }
+          // }
+          // playerAge += 100;
+        }
+        if (!gameSettings.canMove) {
+          switch (event.key) {
+            case "Y":
+            case "y":
+              gameOverWant = "done";
+              break;
+            case "N":
+            case "n":
+              gameOverWant = "rebirth";
+              break;
+            // default:
+            //   console.log(event.key);
           }
-          playerAge += 100;
         }
       });
       document.body.addEventListener("keyup", (event) => {
@@ -304,10 +378,27 @@
         onresize();
       }
       function initialize_game_as_game_over() {
+        gameOverWant = undefined;
         playerX = GAME_STAGES.game_over.startPosition.x;
         playerY = GAME_STAGES.game_over.startPosition.y;
         // playerAge = GAME_STAGES.game_over.startAge;
         gameSettings = GAME_STAGES.game_over;
+        onresize();
+      }
+      function initialize_game_as_game_over_done() {
+        gameOverWant = undefined;
+        playerX = GAME_STAGES.game_over_done.startPosition.x;
+        playerY = GAME_STAGES.game_over_done.startPosition.y;
+        // playerAge = GAME_STAGES.game_over.startAge;
+        gameSettings = GAME_STAGES.game_over_done;
+        // onresize();
+      }
+      function initialize_game_as_start_game() {
+        gameOverWant = undefined;
+        playerX = GAME_STAGES.start_game.startPosition.x;
+        playerY = GAME_STAGES.start_game.startPosition.y;
+        // playerAge = GAME_STAGES.game_over.startAge;
+        gameSettings = GAME_STAGES.start_game;
         onresize();
       }
       let lastTimestamp = performance.now();
@@ -325,7 +416,7 @@
         } else if (dx > 0) {
           player_facing_right = true;
         }
-        if (dx !== 0 || dy !== 0) {
+        if ((dx !== 0 || dy !== 0) && gameSettings.canMove) {
           const newPlayerX = playerX + dx * dts * gameSettings.moveSpeed;
           const newPlayerY = playerY + dy * dts * gameSettings.moveSpeed;
           const moveResult = exports.moveResult(newPlayerX, newPlayerY);
@@ -344,6 +435,17 @@
             gameSettings.achievements.push(instanceName[tileIdx]);
             console.log("interact with tileIdx", tileIdx, instanceName[tileIdx]);
             updateFlag(tileIdx, (oldValue) => oldValue | 4);
+            // case "Long life": // depends on "Love" + "Marriage"
+            // case "Family": // depends on "Parents' love" + "A child"
+            if (itemsPickedUp.has(nameToTileidx.get("Love")) && itemsPickedUp.has(nameToTileidx.get("Marriage"))) {
+              console.log("love+marriage");
+              updateFlag(nameToTileidx.get("Long life"), (oldValue) => oldValue & ~8);
+            }
+            if (itemsPickedUp.has(nameToTileidx.get("Parents' love")) && itemsPickedUp.has(nameToTileidx.get("A child"))) {
+              console.log("parents love+child");
+              console.log("love+marriage ==> family");
+              updateFlag(nameToTileidx.get("Family"), (oldValue) => oldValue & ~8);
+            }
           }
         }
         // console.log({ dts, playerx, playery });
@@ -353,11 +455,15 @@
         } else {
           playerTileId = switchWalkTile ? gameSettings.facingLeftTileId1 : gameSettings.facingLeftTileId2;
         }
+        if (!gameSettings.canMove) {
+          playerTileId = -1;
+        }
         exports.update(timeStamp, playerX | 0, playerY | 0, playerTileId);
         new Uint8ClampedArray(image.data.buffer).set(new Uint8ClampedArray(exports.memory.buffer, exports.screenOffset.value, width * height * 4));
         context.putImageData(image, 0, 0);
         context.font = gameSettings.font;
         context.textBaseline = "middle";
+        context.textAlign = "left";
         if (gameSettings.isGameOver) {
           const allAchievements = [];
           for (const stage of [GAME_STAGES.baby, GAME_STAGES.student, GAME_STAGES.adult, GAME_STAGES.grandpa, GAME_STAGES.game_over]) {
@@ -372,13 +478,31 @@
             context.fillText(str, gameSettings.textGap, writeOffset);
           }
           context.fillStyle = "rgba(255,255,255,0.75)";
-          context.fillRect(gameSettings.textGap * 0.3, gameSettings.textGap * 0.3, gameSettings.textGap * 15.5, gameSettings.textGap * (numLinesToWrite + 0.3));
+          context.fillRect(gameSettings.textGap * 0.3, gameSettings.textGap * 0.3, gameSettings.textGap * 15.5, gameSettings.textGap * (numLinesToWrite + 0.8));
           context.fillStyle = "rgba(0,0,0,1.0)";
-          writeLine(` = ACHIEVEMENTS: ${allAchievements.length}/??? = `);
+          writeLine(`LIFE ACHIEVEMENTS: ${allAchievements.length} / 21`);
+          writeOffset += gameSettings.textGap * 0.5;
           for (const a of allAchievements) {
             writeLine(describeAchievement(a));
           }
-        } else {
+          context.textAlign = "center";
+          context.fillStyle = "rgba(255,255,255,1.0)";
+          if (numRebirths > 99) {
+            context.font = "16px serif";
+            context.fillText("MANY", 106 - playerX - 25 + width / 2, gameSettings.startPosition.y + 88 - playerY - 25 + height / 2);
+            context.font = gameSettings.font;
+          } else {
+            context.fillText(`${numRebirths}`, 106 - playerX - 25 + width / 2, gameSettings.startPosition.y + 88 - playerY - 25 + height / 2);
+          }
+          context.textAlign = "left";
+          if (gameOverWant === "rebirth") {
+            playerAge = 1;
+            numRebirths += 1;
+            GAME_STAGES.baby.init_function();
+          } else if (gameOverWant === "done") {
+            GAME_STAGES.game_over_done.init_function();
+          }
+        } else if (gameSettings.canMove) {
           const numLinesToWrite = 1 + gameSettings.achievements.length;
           let writeOffset = 0;
           function writeLine(str) {
@@ -404,6 +528,13 @@
               }
             }
             init_function();
+          }
+        } else {
+          // Not really done; the "Y" here means start instead of happy with life.
+          if (gameOverWant === "done") {
+            playerAge = 1;
+            numRebirths += 1;
+            GAME_STAGES.baby.init_function();
           }
         }
 
@@ -442,7 +573,7 @@
         mapTileId.array.set(new Uint8Array(mapData.arrTileId.buffer));
         mapFlags.array.set(new Uint8Array(mapData.arrFlags.buffer));
 
-        initialize_game_as_baby();
+        onresize();
         new ResizeObserver(onresize).observe(canvas);
 
         requestAnimationFrame(update);
