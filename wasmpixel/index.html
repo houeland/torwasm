@@ -85,7 +85,7 @@
           canMove: true,
         },
         game_over: {
-          startPosition: { x: -80, y: 10080 },
+          startPosition: { x: -150, y: 9975 },
           startAge: 100,
           nextAge: Infinity,
           moveSpeed: 1 / 40,
@@ -103,7 +103,7 @@
           canMove: false,
         },
         game_over_done: {
-          startPosition: { x: -80, y: 9080 },
+          startPosition: { x: -150, y: 8975 },
           startAge: 100,
           nextAge: Infinity,
           moveSpeed: 1 / 40,
@@ -121,7 +121,7 @@
           canMove: false,
         },
         start_game: {
-          startPosition: { x: 30, y: 7300 },
+          startPosition: { x: -150, y: 7175 },
           startAge: 100,
           nextAge: Infinity,
           moveSpeed: 1 / 40,
@@ -489,10 +489,10 @@
           context.fillStyle = "rgba(255,255,255,1.0)";
           if (numRebirths > 99) {
             context.font = "16px serif";
-            context.fillText("MANY", 106 - playerX - 25 + width / 2, gameSettings.startPosition.y + 88 - playerY - 25 + height / 2);
+            context.fillText("MANY", 106 - playerX - 25 + width / 2, gameSettings.startPosition.y + 193 - playerY - 25 + height / 2);
             context.font = gameSettings.font;
           } else {
-            context.fillText(`${numRebirths}`, 106 - playerX - 25 + width / 2, gameSettings.startPosition.y + 88 - playerY - 25 + height / 2);
+            context.fillText(`${numRebirths}`, 106 - playerX - 25 + width / 2, gameSettings.startPosition.y + 193 - playerY - 25 + height / 2);
           }
           context.textAlign = "left";
           if (gameOverWant === "rebirth") {
